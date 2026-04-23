@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>AUEM — Attente Délais</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Syne:wght@700;800&display=swap');
+
+:root {
+  --bg: #f5f0e8;
+  --bg2: #ede8df;
+  --card: #ffffff;
+  --border: #d8d0c4;
+  --border2: #c8bfb0;
+  --text: #1a1410;
+  --text2: #6b5f50;
+  --text3: #a09080;
+  --accent: #c8502a;
+  --accent2: #e8643e;
+  --green: #2d6a4f;
+  --green-bg: #d8f3dc;
+  --yellow: #b5770a;
+  --yellow-bg: #fff3cd;
+  --red: #c8502a;
+  --red-bg: #fde8e0;
+  --blue: #1a4a8a;
+  --blue-bg: #dce8f8;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow: 0 2px 8px rgba(26,20,16,0.08);
+  --shadow-lg: 0 4px 20px rgba(26,20,16,0.12);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 14px;
+  min-height: 100vh;
+  padding-bottom: 80px;
+}
+
+/* HEADER */
+.header {
+  background: var(--text);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-left { display: flex; align-items: center; gap: 12px; }
+
+.header-badge {
+  background: var(--accent);
+  color: white;
+  font-family: 'Syne', sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+
+.header-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 16px;
+  font-weight: 800;
+  color: white;
+  letter-spacing: 0.5px;
+}
+
+.header-sub { font-size: 11px; color: #888; margin-top: 1px; }
+
+.header-right { display: flex; align-items: center; gap: 8px; }
+
+.sync-wrap { display: flex; align-items: center; gap: 6px; }
+.sync-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #555; transition: background 0.3s;
+}
+.sync-dot.ok { background: #4ade80; }
+.sync-dot.loading { background: #fbbf24; animation: blink 0.6s infinite alternate; }
+.sync-dot.error { background: #f87171; }
+@keyframes blink { to { opacity: 0.2; } }
+
+.btn-qr {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: var(--radius-sm);
+  color: white;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-qr:active { background: rgba(255,255,255,0.2); }
+
+/* VIEWS */
+.view { display: none; }
+.view.active { display: block; }
+
+/* LOADING */
+.loading-screen {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  height: 50vh; gap: 12px;
+}
+.spinner {
+  width: 28px; height: 28px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text { font-size: 12px; color: var(--text3); }
+
+/* RACK VIEW */
+.rack-view { padding: 14px; }
+
+/* BANNER */
+.banner {
+  background: var(--accent);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.banner-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  color: white;
+  letter-spacing: 0.5px;
+}
+
+.banner-sub { font-size: 11px; color: rgba(255,255,255,0.7); margin-top: 2px; }
+
+.stats-pills {
+  display: flex; gap: 6px;
+}
+
+.stat-pill {
+  background: rgba(255,255,255,0.15);
+  border-radius: 20px;
+  padding: 4px 10px;
+  text-align: center;
+}
+
+.stat-pill-num { font-size: 16px; font-weight: 700; color: white; line-height: 1; }
+.stat-pill-lbl { font-size: 9px; color: rgba(255,255,255,0.7); margin-top: 1px; }
+
+/* ETAGE */
+.etage-section { margin-bottom: 18px; }
+
+.etage-header {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 8px; padding-left: 2px;
+}
+
+.etage-tag {
+  font-family: 'Syne', sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text);
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 4px 12px;
+}
+
+.etage-info { font-size: 11px; color: var(--text3); }
+
+.emp-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.emp-card {
+  background: var(--card);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px;
+  cursor: pointer;
+  min-height: 90px;
+  position: relative;
+  box-shadow: var(--shadow);
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+
+.emp-card:active { transform: scale(0.97); box-shadow: none; }
+
+.emp-card.c-green { border-color: #86efac; background: #f0fdf4; }
+.emp-card.c-yellow { border-color: #fcd34d; background: #fffbeb; }
+.emp-card.c-red { border-color: #fca5a5; background: #fff1f0; }
+
+.emp-top {
+  display: flex; align-items: center;
+  justify-content: space-between; margin-bottom: 4px;
+}
+
+.emp-id {
+  font-family: 'Syne', sans-serif;
+  font-size: 15px; font-weight: 800;
+  color: var(--text);
+}
+
+.emp-count {
+  font-size: 10px; font-weight: 600;
+  padding: 2px 7px; border-radius: 20px;
+  background: var(--bg2); color: var(--text3);
+  border: 1px solid var(--border);
+}
+
+.emp-count.has { background: var(--green-bg); color: var(--green); border-color: #86efac; }
+
+.emp-company {
+  font-size: 10px; font-weight: 600;
+  color: var(--accent); margin-bottom: 5px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.emp-timer {
+  position: absolute; top: 8px; right: 8px;
+  width: 8px; height: 8px; border-radius: 50%;
+}
+
+.emp-items { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; }
+
+.emp-item {
+  font-size: 10px; font-weight: 500;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  color: var(--text2);
+}
+
+.emp-item.c-green { color: var(--green); }
+.emp-item.c-yellow { color: var(--yellow); }
+.emp-item.c-red { color: var(--red); }
+
+/* DEADLINE BADGE */
+.deadline-bar {
+  width: 100%;
+  height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  margin-top: 6px;
+  overflow: hidden;
+}
+.deadline-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.3s;
+}
+
+/* SEPARATOR */
+.sep-rack {
+  display: flex; align-items: center; gap: 8px;
+  margin: 10px 0 14px;
+}
+.sep-line { flex: 1; height: 1px; background: var(--border2); }
+.sep-label {
+  font-size: 10px; font-weight: 600;
+  color: var(--text3); letter-spacing: 1px;
+  white-space: nowrap;
+  background: var(--bg2);
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}
+
+/* BACK HEADER */
+.back-header {
+  background: var(--text);
+  padding: 12px 16px;
+  display: flex; align-items: center; gap: 12px;
+  position: sticky; top: 0; z-index: 10;
+}
+
+.btn-back {
+  width: 34px; height: 34px;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: var(--radius-sm);
+  color: white; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; flex-shrink: 0;
+}
+
+.bh-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 17px; font-weight: 800; color: white;
+}
+.bh-sub { font-size: 11px; color: #888; margin-top: 1px; }
+
+/* BODY */
+.view-body { padding: 14px; }
+
+/* CARDS */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  margin-bottom: 10px;
+  box-shadow: var(--shadow);
+}
+
+.card-label {
+  font-size: 11px; font-weight: 700;
+  color: var(--text3); letter-spacing: 0.5px;
+  text-transform: uppercase; margin-bottom: 10px;
+}
+
+/* INPUTS */
+.inp {
+  width: 100%;
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 14px;
+  padding: 10px 12px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.inp:focus { border-color: var(--accent); }
+.inp::placeholder { color: var(--text3); }
+
+.inp-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.inp-row:last-child { margin-bottom: 0; }
+.inp-sm { width: 70px; flex: none; }
+
+/* BUTTONS */
+.btn-main {
+  width: 100%;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 13px; font-weight: 700;
+  padding: 12px;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: background 0.15s;
+  letter-spacing: 0.3px;
+}
+.btn-main:active { background: var(--accent2); }
+
+.btn-sec {
+  background: var(--bg2);
+  border: 1.5px solid var(--border2);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 13px; font-weight: 600;
+  padding: 10px 14px;
+  cursor: pointer; white-space: nowrap;
+}
+.btn-sec:active { background: var(--border); }
+
+/* COLIS */
+.colis-card {
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  box-shadow: var(--shadow);
+  transition: opacity 0.2s;
+}
+
+.colis-card.done { opacity: 0.4; }
+
+.colis-stripe {
+  width: 4px; border-radius: 2px;
+  flex-shrink: 0; align-self: stretch; min-height: 40px;
+}
+
+.colis-body { flex: 1; min-width: 0; }
+
+.colis-ref {
+  font-size: 14px; font-weight: 700;
+  color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.colis-card.done .colis-ref { text-decoration: line-through; color: var(--text3); }
+
+.colis-meta { display: flex; align-items: center; gap: 5px; margin-top: 5px; flex-wrap: wrap; }
+.colis-note-txt { font-size: 11px; color: var(--text2); }
+
+.badge { font-size: 10px; padding: 2px 8px; border-radius: 20px; font-weight: 600; white-space: nowrap; }
+.b-green { background: var(--green-bg); color: var(--green); }
+.b-yellow { background: var(--yellow-bg); color: var(--yellow); }
+.b-red { background: var(--red-bg); color: var(--red); }
+.b-blue { background: var(--blue-bg); color: var(--blue); }
+.b-gray { background: var(--bg2); color: var(--text2); border: 1px solid var(--border); }
+
+.colis-afs { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+
+.colis-acts { display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; }
+
+.btn-circ {
+  width: 30px; height: 30px; border-radius: 50%;
+  border: 1.5px solid var(--border);
+  background: var(--bg2);
+  color: var(--text2);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px;
+}
+.colis-card.done .btn-circ.chk { border-color: var(--green); color: var(--green); }
+.btn-circ.del:active { border-color: var(--red); color: var(--red); }
+
+/* DEADLINE PROGRESS */
+.deadline-section { margin-top: 6px; }
+.deadline-label { font-size: 10px; color: var(--text3); margin-bottom: 3px; }
+.deadline-bar-big {
+  width: 100%; height: 6px;
+  background: var(--bg2);
+  border-radius: 3px; overflow: hidden;
+}
+.deadline-fill-big { height: 100%; border-radius: 3px; transition: width 0.3s; }
+
+/* AFS */
+.afs-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px;
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-bottom: 6px;
+}
+.afs-num { flex: 1; font-size: 13px; font-weight: 600; color: var(--blue); }
+.btn-afs-del { background: none; border: none; color: var(--text3); font-size: 16px; cursor: pointer; padding: 0 4px; }
+.btn-afs-del:active { color: var(--red); }
+
+.empty { text-align: center; padding: 24px 16px; color: var(--text3); font-size: 13px; line-height: 1.8; }
+.divider { height: 1px; background: var(--border); margin: 10px 0; }
+
+/* QR */
+.qr-center { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 16px 0; }
+.qr-box { background: white; padding: 16px; border-radius: 12px; box-shadow: var(--shadow-lg); }
+.qr-name { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 800; color: var(--text2); letter-spacing: 0.5px; text-align: center; }
+
+.qr-info {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px; width: 100%;
+  box-shadow: var(--shadow);
+}
+.qr-info-title { font-size: 11px; font-weight: 700; color: var(--text3); letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 10px; }
+.qr-step { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px; font-size: 12px; color: var(--text2); line-height: 1.5; }
+.qr-num { width: 20px; height: 20px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: white; flex-shrink: 0; }
+
+.color-legend { display: flex; flex-direction: column; gap: 6px; }
+.color-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text2); }
+.cdot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+/* TOAST */
+.toast {
+  position: fixed; bottom: 24px; left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: var(--text); color: white;
+  font-size: 13px; font-weight: 600;
+  padding: 10px 20px; border-radius: 20px;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 999; white-space: nowrap;
+  box-shadow: var(--shadow-lg);
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div class="header-badge">AUEM</div>
+    <div>
+      <div class="header-title">Attente Fin de Délais</div>
+      <div class="header-sub">Suivi des délais en temps réel</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="sync-wrap">
+      <div class="sync-dot loading" id="sync-dot"></div>
+    </div>
+    <button class="btn-qr" onclick="showQR()">QR CODE</button>
+  </div>
+</div>
+
+<!-- VUE RACK -->
+<div class="view active" id="view-rack">
+  <div class="rack-view">
+    <div class="banner">
+      <div>
+        <div class="banner-title">Rack Attente Délais</div>
+        <div class="banner-sub">D = haut — A = bas</div>
+      </div>
+      <div class="stats-pills">
+        <div class="stat-pill"><div class="stat-pill-num" id="s-ok">—</div><div class="stat-pill-lbl">OK</div></div>
+        <div class="stat-pill"><div class="stat-pill-num" id="s-att">—</div><div class="stat-pill-lbl">Att.</div></div>
+        <div class="stat-pill"><div class="stat-pill-num" id="s-urg">—</div><div class="stat-pill-lbl">Urg.</div></div>
+      </div>
+    </div>
+    <div id="rack-grid">
+      <div class="loading-screen"><div class="spinner"></div><div class="loading-text">Chargement...</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- VUE EMPLACEMENT -->
+<div class="view" id="view-colonne">
+  <div class="back-header">
+    <button class="btn-back" onclick="showRack()">←</button>
+    <div>
+      <div class="bh-title" id="col-title">A1</div>
+      <div class="bh-sub" id="col-sub">Emplacement</div>
+    </div>
+  </div>
+  <div class="view-body">
+    <div class="card">
+      <div class="card-label">Entreprise associée</div>
+      <div class="inp-row">
+        <input class="inp" id="inp-company" placeholder="Ex: ESRT, PICANOL..." />
+        <button class="btn-sec" onclick="saveCompany()">✓</button>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-top:6px;">Laissez vide pour retirer</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Nouveau colis</div>
+      <div class="inp-row"><input class="inp" id="inp-ref" placeholder="Référence / N° commande" /></div>
+      <div class="inp-row">
+        <input class="inp" id="inp-note" placeholder="Note (optionnel)" />
+        <input class="inp inp-sm" id="inp-count" type="number" min="1" max="99" value="1" />
+      </div>
+      <div class="inp-row"><input class="inp" id="inp-afs" placeholder="N° AFS — séparés par virgule" /></div>
+      <button class="btn-main" onclick="addColis()">+ Ajouter ce colis</button>
+    </div>
+    <div style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:0.5px;text-transform:uppercase;padding:0 2px 8px;">Colis en cours</div>
+    <div id="colis-list"></div>
+  </div>
+</div>
+
+<!-- VUE DÉTAIL COLIS -->
+<div class="view" id="view-colis">
+  <div class="back-header">
+    <button class="btn-back" onclick="backToColonne()">←</button>
+    <div>
+      <div class="bh-title" id="colis-title">Colis</div>
+      <div class="bh-sub" id="colis-sub">Modifier</div>
+    </div>
+  </div>
+  <div class="view-body">
+    <div class="card">
+      <div class="card-label">Informations</div>
+      <div class="inp-row"><input class="inp" id="edit-ref" placeholder="Référence" /></div>
+      <div class="inp-row">
+        <input class="inp" id="edit-note" placeholder="Note (optionnel)" />
+        <input class="inp inp-sm" id="edit-count" type="number" min="1" max="99" value="1" />
+      </div>
+      <button class="btn-main" onclick="saveColis()">✓ Enregistrer</button>
+    </div>
+    <div class="card">
+      <div class="card-label">Numéros AFS</div>
+      <div id="afs-list"></div>
+      <div class="divider"></div>
+      <div class="inp-row">
+        <input class="inp" id="inp-new-afs" placeholder="Ajouter un ou plusieurs N° AFS..." />
+        <button class="btn-sec" onclick="addAFS()">+</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- VUE QR -->
+<div class="view" id="view-qr">
+  <div class="back-header">
+    <button class="btn-back" onclick="showRack()">←</button>
+    <div>
+      <div class="bh-title">QR Code</div>
+      <div class="bh-sub">Scanner pour accéder au rack</div>
+    </div>
+  </div>
+  <div class="view-body">
+    <div class="qr-center">
+      <div class="qr-box">
+        <div id="qr-container" style="width:200px;height:200px;display:flex;align-items:center;justify-content:center;">
+          <div class="spinner"></div>
+        </div>
+      </div>
+      <div class="qr-name">RACK ATTENTE DÉLAIS — AUEM</div>
+      <div class="qr-info">
+        <div class="qr-info-title">Comment utiliser</div>
+        <div class="qr-step"><div class="qr-num">1</div>Imprimez et plastifiez ce QR code</div>
+        <div class="qr-step"><div class="qr-num">2</div>Fixez-le sur le rack à hauteur des yeux</div>
+        <div class="qr-step"><div class="qr-num">3</div>Tous les opérateurs voient le même rack en temps réel</div>
+        <div class="divider"></div>
+        <div class="qr-info-title">Code couleur — ancienneté automatique</div>
+        <div class="color-legend">
+          <div class="color-row"><div class="cdot" style="background:#86efac"></div>Vert — moins d'1 semaine</div>
+          <div class="color-row"><div class="cdot" style="background:#fcd34d"></div>Jaune — 1 à 2 semaines</div>
+          <div class="color-row"><div class="cdot" style="background:#fca5a5"></div>Rouge — plus de 2 semaines</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const ETAGES = ['D','C','B','A'];
+const ETAGE_INFO = {
+  'D': { name: 'Étage D', desc: 'Haut — gerbeur obligatoire' },
+  'C': { name: 'Étage C', desc: 'Gerbeur nécessaire' },
+  'B': { name: 'Étage B', desc: 'Accessible à la main' },
+  'A': { name: 'Étage A', desc: 'Bas — niveau sol' },
+};
+const COLS = 6;
+const FIREBASE = 'https://rac-attente-fin-delais-default-rtdb.europe-west1.firebasedatabase.app/rack.json';
+
+let state={}, currentCol=null, currentColisIdx=null, saveTimer=null;
+
+function initState() {
+  const s={};
+  ETAGES.forEach(e=>{ for(let i=1;i<=COLS;i++) s[`${e}${i}`]={colis:[],company:''}; });
+  return s;
+}
+
+function migrate(data) {
+  const s=data||initState();
+  ETAGES.forEach(e=>{ for(let i=1;i<=COLS;i++) {
+    const id=`${e}${i}`;
+    if(!s[id]) s[id]={colis:[],company:''};
+    if(Array.isArray(s[id])) s[id]={colis:s[id],company:''};
+    if(!s[id].colis) s[id].colis=[];
+    if(!s[id].company) s[id].company='';
+  }});
+  return s;
+}
+
+function setSyncDot(st) { document.getElementById('sync-dot').className='sync-dot '+st; }
+
+async function loadFromServer() {
+  setSyncDot('loading');
+  try {
+    const res=await fetch(FIREBASE);
+    if(!res.ok) throw new Error();
+    state=migrate(await res.json());
+    setSyncDot('ok'); renderRack();
+  } catch {
+    try { state=migrate(JSON.parse(localStorage.getItem('auem_delais'))); } catch { state=initState(); }
+    setSyncDot('error'); renderRack();
+    showToast('Mode hors-ligne');
+  }
+}
+
+async function saveToServer() {
+  setSyncDot('loading');
+  try {
+    await fetch(FIREBASE,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(state)});
+    localStorage.setItem('auem_delais',JSON.stringify(state));
+    setSyncDot('ok');
+  } catch {
+    localStorage.setItem('auem_delais',JSON.stringify(state));
+    setSyncDot('error');
+  }
+}
+
+function scheduleSave() { clearTimeout(saveTimer); saveTimer=setTimeout(saveToServer,600); }
+setInterval(()=>{ if(document.getElementById('view-rack').classList.contains('active')) loadFromServer(); },30000);
+
+function ageCls(ts) {
+  const d=(Date.now()-ts)/86400000;
+  return d>=14?'c-red':d>=7?'c-yellow':'c-green';
+}
+function ageStripe(ts) {
+  const d=(Date.now()-ts)/86400000;
+  return d>=14?'#fca5a5':d>=7?'#fcd34d':'#86efac';
+}
+function ageBadge(ts) {
+  const d=(Date.now()-ts)/86400000;
+  return d>=14?'b-red':d>=7?'b-yellow':'b-green';
+}
+function ageLabel(ts) {
+  const d=Math.floor((Date.now()-ts)/86400000);
+  return d===0?"Aujourd'hui":d===1?'1 jour':`${d} jours`;
+}
+function dominantCls(id) {
+  const active=(state[id]?.colis||[]).filter(c=>!c.done);
+  if(!active.length) return '';
+  return ageCls(active.reduce((a,b)=>a.ts<b.ts?a:b).ts);
+}
+
+function updateStats() {
+  let ok=0,att=0,urg=0;
+  ETAGES.forEach(e=>{ for(let i=1;i<=COLS;i++) {
+    (state[`${e}${i}`]?.colis||[]).filter(c=>!c.done).forEach(c=>{
+      const d=(Date.now()-c.ts)/86400000;
+      if(d>=14) urg++; else if(d>=7) att++; else ok++;
+    });
+  }});
+  document.getElementById('s-ok').textContent=ok;
+  document.getElementById('s-att').textContent=att;
+  document.getElementById('s-urg').textContent=urg;
+}
+
+function renderRack() {
+  updateStats();
+  const grid=document.getElementById('rack-grid');
+  grid.innerHTML='';
+  ETAGES.forEach((etage,ei)=>{
+    const info=ETAGE_INFO[etage];
+    const sec=document.createElement('div');
+    sec.className='etage-section';
+    sec.innerHTML=`<div class="etage-header"><span class="etage-tag">${info.name}</span><span class="etage-info">${info.desc}</span></div>`;
+    const g=document.createElement('div');
+    g.className='emp-grid';
+    for(let i=1;i<=COLS;i++) {
+      const id=`${etage}${i}`;
+      const active=(state[id]?.colis||[]).filter(c=>!c.done);
+      const company=state[id]?.company||'';
+      const total=active.reduce((s,c)=>s+(c.count||1),0);
+      const dc=dominantCls(id);
+      const oldest=active.length?active.reduce((a,b)=>a.ts<b.ts?a:b):null;
+
+      const card=document.createElement('div');
+      card.className=`emp-card ${dc}`;
+
+      // Progress bar pour le délai
+      let progressBar='';
+      if(oldest) {
+        const days=Math.floor((Date.now()-oldest.ts)/86400000);
+        const pct=Math.min((days/14)*100,100);
+        const fillColor=days>=14?'#fca5a5':days>=7?'#fcd34d':'#86efac';
+        progressBar=`<div class="deadline-bar"><div class="deadline-fill" style="width:${pct}%;background:${fillColor}"></div></div>`;
+      }
+
+      card.innerHTML=`
+        <div class="emp-top">
+          <span class="emp-id">${id}</span>
+          <span class="emp-count ${total?'has':''}">${total||'Vide'}</span>
+        </div>
+        ${company?`<div class="emp-company">🏭 ${company}</div>`:''}
+        <div class="emp-items">
+          ${active.slice(0,2).map(c=>`<div class="emp-item ${ageCls(c.ts)}">${c.ref}</div>`).join('')}
+          ${active.length>2?`<div class="emp-item">+${active.length-2} autres</div>`:''}
+        </div>
+        ${progressBar}
+      `;
+      card.onclick=()=>openColonne(id);
+      g.appendChild(card);
+    }
+    sec.appendChild(g);
+    if(etage==='B') {
+      const sep=document.createElement('div');
+      sep.className='sep-rack';
+      sep.innerHTML=`<div class="sep-line"></div><div class="sep-label">↑ HAUTEUR D'HOMME</div><div class="sep-line"></div>`;
+      sec.appendChild(sep);
+    }
+    grid.appendChild(sec);
+  });
+}
+
+function openColonne(id) {
+  currentCol=id;
+  const info=ETAGE_INFO[id[0]];
+  document.getElementById('col-title').textContent=id;
+  document.getElementById('col-sub').textContent=info.name+' — '+info.desc;
+  document.getElementById('inp-company').value=state[id]?.company||'';
+  ['inp-ref','inp-note','inp-afs'].forEach(x=>document.getElementById(x).value='');
+  document.getElementById('inp-count').value='1';
+  renderColisList();
+  showView('view-colonne');
+}
+
+function renderColisList() {
+  const list=document.getElementById('colis-list');
+  const all=state[currentCol]?.colis||[];
+  if(!all.length){list.innerHTML='<div class="empty">Aucun colis sur cet emplacement<br>Ajoutez-en un ci-dessus</div>';return;}
+  list.innerHTML='';
+  [...all.filter(c=>!c.done),...all.filter(c=>c.done)].forEach(colis=>{
+    const idx=all.indexOf(colis);
+    const card=document.createElement('div');
+    card.className=`colis-card ${colis.done?'done':''}`;
+
+    const days=Math.floor((Date.now()-colis.ts)/86400000);
+    const pct=Math.min((days/14)*100,100);
+    const fillColor=days>=14?'#fca5a5':days>=7?'#fcd34d':'#86efac';
+
+    card.innerHTML=`
+      <div class="colis-stripe" style="background:${colis.done?'#ccc':ageStripe(colis.ts)}"></div>
+      <div class="colis-body">
+        <div class="colis-ref">${colis.ref}</div>
+        <div class="colis-meta">
+          ${!colis.done?`<span class="badge ${ageBadge(colis.ts)}">${ageLabel(colis.ts)}</span>`:''}
+          ${(colis.count||1)>1?`<span class="badge b-gray">${colis.count} colis</span>`:''}
+          ${colis.note?`<span class="colis-note-txt">${colis.note}</span>`:''}
+        </div>
+        ${colis.afs&&colis.afs.length?`<div class="colis-afs">${colis.afs.map(a=>`<span class="badge b-blue">AFS ${a}</span>`).join('')}</div>`:''}
+        ${!colis.done?`<div class="deadline-section"><div class="deadline-label">Délai : ${days} / 14 jours</div><div class="deadline-bar-big"><div class="deadline-fill-big" style="width:${pct}%;background:${fillColor}"></div></div></div>`:''}
+      </div>
+      <div class="colis-acts">
+        <button class="btn-circ" onclick="openColis(${idx})">✏️</button>
+        <button class="btn-circ chk" onclick="toggleDone(${idx})">${colis.done?'↩':'✓'}</button>
+        <button class="btn-circ del" onclick="deleteColis(${idx})">✕</button>
+      </div>`;
+    list.appendChild(card);
+  });
+}
+
+function addColis() {
+  const ref=document.getElementById('inp-ref').value.trim();
+  if(!ref){showToast('Entrez une référence');return;}
+  const note=document.getElementById('inp-note').value.trim();
+  const count=parseInt(document.getElementById('inp-count').value)||1;
+  const afs=document.getElementById('inp-afs').value.trim().split(/[,;\s]+/).filter(Boolean);
+  if(!state[currentCol]) state[currentCol]={colis:[],company:''};
+  state[currentCol].colis.push({ref,note,count,afs,done:false,ts:Date.now()});
+  ['inp-ref','inp-note','inp-afs'].forEach(x=>document.getElementById(x).value='');
+  document.getElementById('inp-count').value='1';
+  renderColisList(); renderRack(); scheduleSave();
+  showToast('Colis ajouté ✓');
+}
+
+function toggleDone(idx) {
+  state[currentCol].colis[idx].done=!state[currentCol].colis[idx].done;
+  renderColisList(); renderRack(); scheduleSave();
+}
+
+function deleteColis(idx) {
+  if(!confirm('Supprimer ce colis ?')) return;
+  state[currentCol].colis.splice(idx,1);
+  renderColisList(); renderRack(); scheduleSave();
+}
+
+function saveCompany() {
+  const c=document.getElementById('inp-company').value.trim();
+  if(!state[currentCol]) state[currentCol]={colis:[],company:''};
+  state[currentCol].company=c;
+  renderRack(); scheduleSave();
+  showToast(c?'Entreprise enregistrée ✓':'Entreprise retirée ✓');
+}
+
+let currentColisIdx=null;
+
+function openColis(idx) {
+  currentColisIdx=idx;
+  const c=state[currentCol].colis[idx];
+  document.getElementById('colis-title').textContent=c.ref;
+  document.getElementById('colis-sub').textContent=currentCol;
+  document.getElementById('edit-ref').value=c.ref;
+  document.getElementById('edit-note').value=c.note||'';
+  document.getElementById('edit-count').value=c.count||1;
+  document.getElementById('inp-new-afs').value='';
+  renderAFSList();
+  showView('view-colis');
+}
+
+function renderAFSList() {
+  const afs=state[currentCol].colis[currentColisIdx].afs||[];
+  const el=document.getElementById('afs-list');
+  if(!afs.length){el.innerHTML='<div style="font-size:12px;color:var(--text3);padding:4px 0 8px;">Aucun AFS associé</div>';return;}
+  el.innerHTML=afs.map((a,i)=>`<div class="afs-item"><span class="afs-num">AFS ${a}</span><button class="btn-afs-del" onclick="removeAFS(${i})">×</button></div>`).join('');
+}
+
+function addAFS() {
+  const val=document.getElementById('inp-new-afs').value.trim();
+  if(!val) return;
+  if(!state[currentCol].colis[currentColisIdx].afs) state[currentCol].colis[currentColisIdx].afs=[];
+  val.split(/[,;\s]+/).filter(Boolean).forEach(n=>state[currentCol].colis[currentColisIdx].afs.push(n));
+  document.getElementById('inp-new-afs').value='';
+  renderAFSList(); renderColisList(); scheduleSave();
+  showToast('AFS ajouté ✓');
+}
+
+function removeAFS(i) {
+  state[currentCol].colis[currentColisIdx].afs.splice(i,1);
+  renderAFSList(); renderColisList(); scheduleSave();
+}
+
+function saveColis() {
+  const ref=document.getElementById('edit-ref').value.trim();
+  if(!ref){showToast('Entrez une référence');return;}
+  const c=state[currentCol].colis[currentColisIdx];
+  c.ref=ref; c.note=document.getElementById('edit-note').value.trim();
+  c.count=parseInt(document.getElementById('edit-count').value)||1;
+  document.getElementById('colis-title').textContent=ref;
+  renderColisList(); renderRack(); scheduleSave();
+  showToast('Modifié ✓');
+}
+
+function backToColonne() { renderColisList(); showView('view-colonne'); }
+
+function showQR() {
+  const url=window.location.href.split('?')[0];
+  const container=document.getElementById('qr-container');
+  const img=new Image();
+  img.style.cssText='display:block;width:200px;height:200px;border-radius:4px;';
+  img.onload=()=>{container.innerHTML='';container.appendChild(img);};
+  img.src=`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}&bgcolor=ffffff&color=1a1410&margin=12`;
+  showView('view-qr');
+}
+
+function showView(id) {
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+function showRack() { renderRack(); showView('view-rack'); }
+
+function showToast(msg) {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+loadFromServer();
+</script>
+</body>
+</html>
